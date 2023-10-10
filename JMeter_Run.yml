@@ -1,0 +1,40 @@
+name: JMeterRun
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+
+      - name: Download and run JMeter
+        run: |
+          wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.2.tgz
+          tar -xzf apache-jmeter-5.6.2.tgz
+          cd apache-jmeter-5.6.2/bin
+          ./jmeter -n -t $GITHUB_WORKSPACE/.github/workflows/SampleAPIs.jmx -l $GITHUB_WORKSPACE/.github/workflows/JTL/results.jtl -e -o $GITHUB_WORKSPACE/.github/workflows/report
+          cd $GITHUB_WORKSPACE
+
+      - name: Commit and Push JTL and HTML Report
+        env:
+              GH_PAT: ${{ secrets.JMETERAUTOMATIONTEST }}
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add .github/workflows/JTL/results.jtl .github/workflows/report
+          git commit -m "Add JTL and HTML Report"
+          git push --set-upstream origin main
